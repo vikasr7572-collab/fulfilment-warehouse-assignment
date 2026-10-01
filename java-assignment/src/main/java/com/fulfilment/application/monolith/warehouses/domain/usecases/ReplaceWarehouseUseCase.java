@@ -5,6 +5,7 @@ import com.fulfilment.application.monolith.warehouses.domain.ports.ReplaceWareho
 import com.fulfilment.application.monolith.warehouses.domain.ports.WarehouseStore;
 import com.fulfilment.application.monolith.warehouses.domain.ports.ArchiveWarehouseOperation;
 import com.fulfilment.application.monolith.warehouses.domain.ports.CreateWarehouseOperation;
+import com.fulfilment.application.monolith.warehouses.domain.validators.WarehouseReplacementValidator;
 import jakarta.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
@@ -13,12 +14,15 @@ public class ReplaceWarehouseUseCase implements ReplaceWarehouseOperation {
   private final WarehouseStore warehouseStore;
   private final ArchiveWarehouseOperation archiveWarehouse;
   private final CreateWarehouseOperation createWarehouse;
+  private final WarehouseReplacementValidator warehouseReplacementValidator;
 
   public ReplaceWarehouseUseCase(WarehouseStore warehouseStore,
-      ArchiveWarehouseOperation archiveWarehouse, CreateWarehouseOperation createWarehouse) {
+      ArchiveWarehouseOperation archiveWarehouse, CreateWarehouseOperation createWarehouse,
+      WarehouseReplacementValidator warehouseReplacementValidator) {
     this.warehouseStore = warehouseStore;
     this.archiveWarehouse = archiveWarehouse;
     this.createWarehouse = createWarehouse;
+    this.warehouseReplacementValidator = warehouseReplacementValidator;
   }
 
   @Override
@@ -30,15 +34,7 @@ public class ReplaceWarehouseUseCase implements ReplaceWarehouseOperation {
     if (previous == null) {
       throw new IllegalArgumentException("No active warehouse exists for this business unit code.");
     }
-    if (!previous.location.equals(newWarehouse.location)) {
-      throw new IllegalArgumentException("Replacement warehouse must be in the same location.");
-    }
-    if (!previous.stock.equals(newWarehouse.stock)) {
-      throw new IllegalArgumentException("Replacement warehouse stock must match the existing warehouse stock.");
-    }
-    if (newWarehouse.capacity == null || newWarehouse.capacity < previous.stock) {
-      throw new IllegalArgumentException("Replacement warehouse capacity cannot accommodate existing stock.");
-    }
+    warehouseReplacementValidator.validate(previous, newWarehouse);
 
     archiveWarehouse.archive(previous);
     createWarehouse.create(newWarehouse);

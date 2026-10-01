@@ -6,11 +6,17 @@ Here we have 3 questions related to the code base for you to answer. It is not a
 
 **Answer:**
 ```txt
-I would standardize the persistence boundary. Products use a repository, Stores use active record, and
-Warehouses use a port/adaptor. The port/adaptor approach best isolates business rules from JPA and makes them
-easy to unit test, so I would migrate the other resources incrementally rather than rewrite everything at once.
-I would also add database constraints and migrations: application validation alone cannot prevent concurrent
-requests from violating business identifiers and lifecycle rules.
+The code base intentionally shows three persistence styles: active record for Store, a Panache repository for
+Product, and ports/adapters for Warehouse and Fulfilment. For new business-heavy modules I would use the
+port/adapter boundary because the application use case and validator depend on an interface rather than JPA.
+This keeps REST, persistence, and business rules separate and allows the rules to be unit tested with small
+in-memory fakes.
+
+I would not rewrite Store and Product solely for consistency; that creates risk without immediate value. I
+would migrate incrementally when their business rules grow. At the database boundary, unique constraints are
+kept for allocation identity, while application validators express user-friendly business errors. For a larger
+production system I would also add versioned schema migrations and concurrency controls for the count-based
+allocation rules.
 
 ```
 ----
@@ -30,10 +36,15 @@ with automated specification publication for small internal resources; both shou
 
 **Answer:**
 ```txt
-I would begin with deterministic unit tests for duplicate code, location validity, capacity/count limits, stock
-limits, archive, and replacement invariants. Next are HTTP integration tests for status codes, persistence and
-transaction boundaries, followed by a few end-to-end tests for the legacy integration. CI publishes JaCoCo and
-enforces 80% instruction coverage for location and warehouse core rules. Coverage is a guardrail, supplemented
-by review of untested risk paths and contract tests for critical flows.
+I would begin with deterministic unit tests for the dedicated Warehouse and Fulfilment validators: duplicate
+codes, location validity, capacity/count limits, stock limits, archive/replacement invariants, allocation
+duplicates, and all three bonus limits. These tests are fast and protect the highest-risk business rules.
+
+Next are HTTP integration tests for status codes, persistence, and transaction boundaries. Store changes publish
+a CDI event, and an `AFTER_SUCCESS` observer calls the legacy gateway only after the database commit; this should
+have focused integration tests for both successful and rolled-back transactions. GitHub Actions runs Maven
+verification, publishes the JaCoCo artifact, and enforces at least 80% instruction coverage for the core
+Location, Warehouse, and Fulfilment domain rules. Coverage is a guardrail, complemented by code review and
+contract tests for critical external APIs.
 
 ```

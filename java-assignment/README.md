@@ -32,20 +32,43 @@ Execute the Maven build on the root of the project:
 ```
 
 For the full test and coverage verification, run `./mvnw verify`. The JaCoCo report is written to
-`target/site/jacoco/index.html`; CI enforces at least 80% instruction coverage for the core location and
-warehouse business rules.
+`target/site/jacoco/index.html`; CI enforces at least 80% instruction coverage for the core Location,
+Warehouse, and Fulfilment domain rules. Every GitHub Actions run uploads this report as the `jacoco-report`
+artifact for review.
 
 ## Implementation notes
 
-Warehouse mutations validate active business-unit uniqueness, configured locations, location capacity/count
-limits, and stock/capacity consistency. Replacement is transactional: it archives the active unit and creates
-its same-location, same-stock replacement together. Store notifications to the legacy gateway run only after
-the containing database transaction commits.
+Warehouse rules are implemented in dedicated validators for creation and replacement. Warehouse mutations
+validate active business-unit uniqueness, configured locations, location capacity/count limits, and
+stock/capacity consistency. Replacement is transactional: it archives the active unit and creates its
+same-location, same-stock replacement together.
 
-The bonus allocation feature is designed as a bounded next increment: an allocation with `storeId`,
+The fulfilment module follows a hexagonal layout: REST and database adapters call an application use case;
+the domain owns ports and a dedicated allocation validator. It validates an allocation with `storeId`,
 `productId`, and active `warehouseId`, transactional count checks, and database uniqueness constraints. It
 enforces two warehouses per product/store, three warehouses per store, and five product types per warehouse
-without losing historical warehouse data after archive.
+without losing historical warehouse data after archive. Store changes publish CDI events, and the legacy
+gateway is invoked by an `AFTER_SUCCESS` observer only after a confirmed database commit.
+
+## Application evidence
+
+The following screenshots were captured while the Quarkus application was running locally with its H2 sample data.
+
+### Warehouse API
+
+![Warehouse API response](docs/screenshots/warehouse-api.png)
+
+### Product API
+
+![Product API response](docs/screenshots/product-api.png)
+
+### Store API
+
+![Store API response](docs/screenshots/store-api.png)
+
+### Bonus fulfilment allocation
+
+![Successful fulfilment allocation](docs/screenshots/fulfilment-allocation-success.png)
 
 ## Running the demo
 

@@ -7,6 +7,7 @@ import com.fulfilment.application.monolith.warehouses.domain.models.Location;
 import com.fulfilment.application.monolith.warehouses.domain.models.Warehouse;
 import com.fulfilment.application.monolith.warehouses.domain.ports.LocationResolver;
 import com.fulfilment.application.monolith.warehouses.domain.ports.WarehouseStore;
+import com.fulfilment.application.monolith.warehouses.domain.validators.WarehouseCreationValidator;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -14,14 +15,14 @@ import org.junit.jupiter.api.Test;
 public class CreateWarehouseUseCaseTest {
   @Test void createsValidWarehouse() {
     var store = new InMemoryStore();
-    var useCase = new CreateWarehouseUseCase(store, resolver(new Location("A", 2, 100)));
+    var useCase = new CreateWarehouseUseCase(store, validator(store, new Location("A", 2, 100)));
     assertDoesNotThrow(() -> useCase.create(warehouse("BU-1", "A", 60, 30)));
   }
 
   @Test void rejectsDuplicateCodeInvalidLocationAndInvalidStock() {
     var store = new InMemoryStore();
     store.warehouses.add(warehouse("BU-1", "A", 30, 10));
-    var useCase = new CreateWarehouseUseCase(store, resolver(new Location("A", 2, 100)));
+    var useCase = new CreateWarehouseUseCase(store, validator(store, new Location("A", 2, 100)));
     assertThrows(IllegalArgumentException.class, () -> useCase.create(warehouse("BU-1", "A", 20, 10)));
     assertThrows(IllegalArgumentException.class, () -> useCase.create(warehouse("BU-2", "B", 20, 10)));
     assertThrows(IllegalArgumentException.class, () -> useCase.create(warehouse("BU-2", "A", 10, 11)));
@@ -30,9 +31,9 @@ public class CreateWarehouseUseCaseTest {
   @Test void rejectsLocationCountAndCapacityExcess() {
     var store = new InMemoryStore();
     store.warehouses.add(warehouse("BU-1", "A", 60, 10));
-    var oneSlot = new CreateWarehouseUseCase(store, resolver(new Location("A", 1, 100)));
+    var oneSlot = new CreateWarehouseUseCase(store, validator(store, new Location("A", 1, 100)));
     assertThrows(IllegalArgumentException.class, () -> oneSlot.create(warehouse("BU-2", "A", 20, 10)));
-    var capacity = new CreateWarehouseUseCase(store, resolver(new Location("A", 2, 70)));
+    var capacity = new CreateWarehouseUseCase(store, validator(store, new Location("A", 2, 70)));
     assertThrows(IllegalArgumentException.class, () -> capacity.create(warehouse("BU-2", "A", 20, 10)));
   }
 
@@ -41,6 +42,9 @@ public class CreateWarehouseUseCaseTest {
     warehouse.capacity = capacity; warehouse.stock = stock; return warehouse;
   }
   static LocationResolver resolver(Location location) { return id -> location.identification.equals(id) ? location : null; }
+  static WarehouseCreationValidator validator(InMemoryStore store, Location location) {
+    return new WarehouseCreationValidator(store, resolver(location));
+  }
   static class InMemoryStore implements WarehouseStore {
     final List<Warehouse> warehouses = new ArrayList<>();
     public List<Warehouse> getAll() { return warehouses.stream().filter(w -> w.archivedAt == null).toList(); }

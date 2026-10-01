@@ -103,6 +103,7 @@
                             <includes>
                                 <include>com/fulfilment/application/monolith/location/**</include>
                                 <include>com/fulfilment/application/monolith/warehouses/domain/**</include>
+                                <include>com/fulfilment/application/monolith/fulfilment/domain/**</include>
                             </includes>
                             <rules><rule><element>BUNDLE</element><limits><limit>
                                 <counter>INSTRUCTION</counter><value>COVEREDRATIO</value><minimum>0.80</minimum>

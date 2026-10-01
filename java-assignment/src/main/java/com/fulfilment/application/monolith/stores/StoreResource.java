@@ -6,9 +6,7 @@ import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import jakarta.transaction.Status;
-import jakarta.transaction.Synchronization;
-import jakarta.transaction.TransactionSynchronizationRegistry;
+import jakarta.enterprise.event.Event;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -23,6 +21,8 @@ import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
 import java.util.List;
 import org.jboss.logging.Logger;
+import com.fulfilment.application.monolith.stores.events.StoreChangeEvent;
+import com.fulfilment.application.monolith.stores.events.StoreChangeType;
 
 @Path("store")
 @ApplicationScoped
@@ -30,8 +30,7 @@ import org.jboss.logging.Logger;
 @Consumes("application/json")
 public class StoreResource {
 
-  @Inject LegacyStoreManagerGateway legacyStoreManagerGateway;
-  @Inject TransactionSynchronizationRegistry transactionSynchronizationRegistry;
+  @Inject Event<StoreChangeEvent> storeChangeEvents;
 
   private static final Logger LOGGER = Logger.getLogger(StoreResource.class.getName());
 
@@ -59,7 +58,7 @@ public class StoreResource {
 
     store.persist();
 
-    afterCommit(() -> legacyStoreManagerGateway.createStoreOnLegacySystem(store));
+    storeChangeEvents.fire(new StoreChangeEvent(StoreChangeType.CREATED, store));
 
     return Response.ok(store).status(201).build();
   }
@@ -81,7 +80,7 @@ public class StoreResource {
     entity.name = updatedStore.name;
     entity.quantityProductsInStock = updatedStore.quantityProductsInStock;
 
-    afterCommit(() -> legacyStoreManagerGateway.updateStoreOnLegacySystem(entity));
+    storeChangeEvents.fire(new StoreChangeEvent(StoreChangeType.UPDATED, entity));
 
     return entity;
   }
@@ -108,7 +107,7 @@ public class StoreResource {
       entity.quantityProductsInStock = updatedStore.quantityProductsInStock;
     }
 
-    afterCommit(() -> legacyStoreManagerGateway.updateStoreOnLegacySystem(entity));
+    storeChangeEvents.fire(new StoreChangeEvent(StoreChangeType.UPDATED, entity));
 
     return entity;
   }
@@ -123,19 +122,6 @@ public class StoreResource {
     }
     entity.delete();
     return Response.status(204).build();
-  }
-
-  private void afterCommit(Runnable operation) {
-    transactionSynchronizationRegistry.registerInterposedSynchronization(new Synchronization() {
-      @Override public void beforeCompletion() {}
-
-      @Override
-      public void afterCompletion(int status) {
-        if (status == Status.STATUS_COMMITTED) {
-          operation.run();
-        }
-      }
-    });
   }
 
   @Provider
