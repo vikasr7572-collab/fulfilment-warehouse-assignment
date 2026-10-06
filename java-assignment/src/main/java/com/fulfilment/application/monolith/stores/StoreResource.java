@@ -55,6 +55,7 @@ public class StoreResource {
     if (store.id != null) {
       throw new WebApplicationException("Id was invalidly set on request.", 422);
     }
+    validateStore(store);
 
     store.persist();
 
@@ -67,9 +68,7 @@ public class StoreResource {
   @Path("{id}")
   @Transactional
   public Store update(Long id, Store updatedStore) {
-    if (updatedStore.name == null) {
-      throw new WebApplicationException("Store Name was not set on request.", 422);
-    }
+    validateStore(updatedStore);
 
     Store entity = Store.findById(id);
 
@@ -89,7 +88,7 @@ public class StoreResource {
   @Path("{id}")
   @Transactional
   public Store patch(Long id, Store updatedStore) {
-    if (updatedStore.name == null) {
+    if (updatedStore.name == null || updatedStore.name.isBlank()) {
       throw new WebApplicationException("Store Name was not set on request.", 422);
     }
 
@@ -103,7 +102,7 @@ public class StoreResource {
       entity.name = updatedStore.name;
     }
 
-    if (updatedStore.quantityProductsInStock != 0) {
+    if (updatedStore.quantityProductsInStock != null) {
       entity.quantityProductsInStock = updatedStore.quantityProductsInStock;
     }
 
@@ -122,6 +121,13 @@ public class StoreResource {
     }
     entity.delete();
     return Response.status(204).build();
+  }
+
+  private void validateStore(Store store) {
+    if (store == null || store.name == null || store.name.isBlank()
+        || store.quantityProductsInStock == null || store.quantityProductsInStock < 0) {
+      throw new WebApplicationException("Store name and a non-negative stock quantity are required.", 422);
+    }
   }
 
   @Provider

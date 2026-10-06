@@ -19,9 +19,15 @@ class FulfilmentAllocationValidatorTest {
   @Test
   void rejectsMissingOrUnknownParticipantsAndDuplicates() {
     assertThrows(BadRequestException.class, () -> validator(new Store(), new Participants()).validate(null));
+    Participants missingStore = new Participants();
+    missingStore.storeExists = false;
+    assertThrows(BadRequestException.class, () -> validator(new Store(), missingStore).validate(allocation()));
     Participants missingProduct = new Participants();
     missingProduct.productExists = false;
     assertThrows(BadRequestException.class, () -> validator(new Store(), missingProduct).validate(allocation()));
+    Participants missingWarehouse = new Participants();
+    missingWarehouse.warehouseExists = false;
+    assertThrows(BadRequestException.class, () -> validator(new Store(), missingWarehouse).validate(allocation()));
     Store duplicate = new Store();
     duplicate.exists = true;
     assertThrows(BadRequestException.class, () -> validator(duplicate, new Participants()).validate(allocation()));

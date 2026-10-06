@@ -28,6 +28,15 @@ public class CreateWarehouseUseCaseTest {
     assertThrows(IllegalArgumentException.class, () -> useCase.create(warehouse("BU-2", "A", 10, 11)));
   }
 
+  @Test void rejectsMissingRequiredWarehouseFields() {
+    var store = new InMemoryStore();
+    var useCase = new CreateWarehouseUseCase(store, validator(store, new Location("A", 2, 100)));
+    assertThrows(IllegalArgumentException.class, () -> useCase.create(null));
+    Warehouse incomplete = new Warehouse();
+    incomplete.businessUnitCode = "BU-1";
+    assertThrows(IllegalArgumentException.class, () -> useCase.create(incomplete));
+  }
+
   @Test void rejectsLocationCountAndCapacityExcess() {
     var store = new InMemoryStore();
     store.warehouses.add(warehouse("BU-1", "A", 60, 10));

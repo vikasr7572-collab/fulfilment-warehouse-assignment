@@ -12,7 +12,8 @@ public class Store extends PanacheEntity {
   @Column(length = 40, unique = true)
   public String name;
 
-  public int quantityProductsInStock;
+  @Column(nullable = false)
+  public Integer quantityProductsInStock;
 
   public Store() {}
 
