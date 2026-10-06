@@ -1,56 +1,101 @@
-# Fulfilment Warehouse Assignment
+# Fulfilment & Warehouse Management Service
 
 [![Build and test](https://github.com/vikasr7572-collab/fulfilment-warehouse-assignment/actions/workflows/ci.yml/badge.svg)](https://github.com/vikasr7572-collab/fulfilment-warehouse-assignment/actions/workflows/ci.yml)
 
-A Quarkus-based Java application for managing stores, products, warehouses, and fulfilment allocations. This repository contains the completed coding assessment, supporting case study, automated tests, and GitHub Actions quality checks.
+Completed Senior Java Engineer coding assessment. This Quarkus service manages **products**, **stores**, and **warehouses**, with a bonus capability to allocate warehouses as fulfilment units for a product at a store.
 
-## Highlights
+The repository is designed to be easy to review: it includes runnable source code, automated tests, a JaCoCo coverage gate, Docker/PostgreSQL configuration, design answers, and application evidence.
 
-- REST endpoints for stores, products, and warehouse lifecycle operations.
-- Dedicated warehouse validators for business-unit, location, capacity, stock, and replacement rules.
-- Transaction-safe Store integration using a CDI event observer that invokes the legacy gateway only after a successful database commit.
-- Bonus fulfilment allocation feature organized into domain, application, ports, adapters, and validator layers.
-- Embedded H2 for local development and tests; PostgreSQL Docker Compose configuration for the production profile.
-- Automated tests and a JaCoCo coverage gate of at least 80% for core business rules, enforced by GitHub Actions.
+## What is implemented
 
-## Architecture
+| Area | Delivered behaviour |
+| --- | --- |
+| Warehouse lifecycle | Create, replace, archive, and query warehouse business units with location, capacity, stock, and uniqueness validation. |
+| Store integration | Store changes are persisted first; a CDI `AFTER_SUCCESS` observer then synchronizes the confirmed change with the legacy gateway. |
+| Bonus fulfilment allocation | Allocates a warehouse to a store/product while enforcing the assignment limits required by the assessment. |
+| Architecture | Warehouse and fulfilment logic follow a pragmatic hexagonal layout: domain rules and ports are separated from REST and database adapters. |
+| Quality | 19 automated tests; JaCoCo enforces at least 80% instruction coverage for the core business-rule packages; GitHub Actions runs `mvn verify` on every push. |
 
-The Warehouse and Fulfilment modules use a pragmatic hexagonal structure:
+## Application evidence
 
-- `domain` — models, ports, and business validators
-- `application` — use cases that orchestrate domain operations
-- `adapters` — REST and database implementations at the system boundary
-- `stores/events` — a CDI `AFTER_SUCCESS` observer for confirmed Store changes
+The screenshots below are captured from the running local Quarkus application using H2 sample data.
 
-This keeps HTTP, persistence, and validation concerns separate and makes business rules straightforward to unit test.
+### Bonus: fulfilment allocation created successfully
+
+The request creates an allocation for Store `1`, Product `2`, and Warehouse `1`.
+
+<img src="java-assignment/docs/screenshots/fulfilment-allocation-success.png" alt="PowerShell successfully creates a fulfilment allocation through the REST API" width="760" />
+
+### Warehouse inventory endpoint
+
+The service returns active warehouse business units, their locations, capacities, and stock levels.
+
+<img src="java-assignment/docs/screenshots/warehouse-api.png" alt="Warehouse API running locally with sample data" width="900" />
+
+<details>
+<summary>View product and store endpoint evidence</summary>
+
+#### Product API
+
+<img src="java-assignment/docs/screenshots/product-api.png" alt="Product API running locally with sample data" width="900" />
+
+#### Store API
+
+<img src="java-assignment/docs/screenshots/store-api.png" alt="Store API running locally with sample data" width="900" />
+
+</details>
+
+## Architecture at a glance
+
+```mermaid
+flowchart LR
+    Client[REST client] --> API[REST adapters]
+    API --> App[Application use cases]
+    App --> Domain[Domain validators and ports]
+    App --> DB[Database adapters]
+    DB --> H2[(H2: local/test)]
+    DB --> PG[(PostgreSQL: production)]
+    Store[Store change] --> Event[CDI AFTER_SUCCESS event]
+    Event --> Legacy[Legacy Store Gateway]
+```
 
 ## Run locally
 
-From the `java-assignment` directory:
+Prerequisite: **JDK 17+**.
 
 ```powershell
+cd java-assignment
 .\mvnw.cmd verify
 .\mvnw.cmd quarkus:dev
 ```
 
-The application starts at `http://localhost:8080`. Full endpoint and Docker instructions are in the [application README](java-assignment/README.md).
+The API starts at `http://localhost:8080`.
 
-## Application screenshots
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /warehouse` | List active warehouse business units |
+| `GET /product` | List products |
+| `GET /store` | List stores |
+| `POST /fulfilment-allocation` | Create a fulfilment allocation |
 
-The application was started locally with Quarkus and H2 sample data. These endpoint responses demonstrate the running API:
+Example bonus request:
 
-![Warehouse API response](java-assignment/docs/screenshots/warehouse-api.png)
+```powershell
+Invoke-RestMethod -Method Post `
+  -Uri "http://localhost:8080/fulfilment-allocation" `
+  -ContentType "application/json" `
+  -Body '{"storeId":1,"productId":2,"warehouseId":1}'
+```
 
-![Product API response](java-assignment/docs/screenshots/product-api.png)
+## Review checklist
 
-![Store API response](java-assignment/docs/screenshots/store-api.png)
-
-![Successful fulfilment allocation](java-assignment/docs/screenshots/fulfilment-allocation-success.png)
-
-## Documentation
-
-- [Assignment requirements](java-assignment/CODE_ASSIGNMENT.md)
-- [Technical questions and answers](java-assignment/QUESTIONS.md)
+- [Application setup and API details](java-assignment/README.md)
+- [Original assignment requirements](java-assignment/CODE_ASSIGNMENT.md)
+- [Technical design answers](java-assignment/QUESTIONS.md)
 - [Case study](case-study/CASE_STUDY.md)
 - [CI workflow](.github/workflows/ci.yml)
-- [JaCoCo report artifact](https://github.com/vikasr7572-collab/fulfilment-warehouse-assignment/actions)
+- [Build and test history / JaCoCo artifacts](https://github.com/vikasr7572-collab/fulfilment-warehouse-assignment/actions)
+
+## Technology
+
+Java 17 · Quarkus · Jakarta REST · Hibernate ORM / Panache · H2 · PostgreSQL · Maven · JUnit 5 · REST Assured · JaCoCo · Docker Compose · GitHub Actions

@@ -1,14 +1,21 @@
-# Java Code Assignment
+# Application guide
 
-This is a short code assignment that explores various aspects of software development, including API implementation, documentation, persistence layer handling, and testing.
+This module contains the runnable Quarkus application for the fulfilment and warehouse coding assessment.
+It exposes REST APIs for products, stores, warehouse business units, and the bonus fulfilment allocation feature.
 
-## About the assignment
+Start at the [repository overview](../README.md) for the solution summary, screenshots, CI status, and design overview.
 
-You will find the tasks of this assignment on [CODE_ASSIGNMENT](CODE_ASSIGNMENT.md) file
+## Quick links
 
-## About the code base
+- [Assignment requirements](CODE_ASSIGNMENT.md)
+- [Technical questions and answers](QUESTIONS.md)
+- [Case study](../case-study/CASE_STUDY.md)
+- [GitHub Actions and JaCoCo artifacts](https://github.com/vikasr7572-collab/fulfilment-warehouse-assignment/actions)
 
-This is based on https://github.com/quarkusio/quarkus-quickstarts
+## Technology and runtime
+
+The application is based on the Quarkus quickstart and uses Java 17, Jakarta REST, Hibernate ORM/Panache,
+H2 for local development and tests, and PostgreSQL for the production profile.
 
 ### Requirements
 
